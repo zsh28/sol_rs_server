@@ -12,7 +12,7 @@ COPY . .
 RUN cargo build --release --target x86_64-unknown-linux-musl
 
 # Stage 2: Ubuntu-based minimal runtime image
-FROM ubuntu:24.04.1
+FROM ubuntu:24.04
 
 # Optional: reduce size
 RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
