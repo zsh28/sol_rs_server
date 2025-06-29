@@ -45,8 +45,11 @@ async fn receive_message(Json(payload): Json<Message>) -> Json<Response> {
 }
 
 async fn get_balance(Path(address): Path<String>) -> Json<BalanceResponse> {
-    // Use Solana devnet
-    let client = RpcClient::new("https://api.mainnet-beta.solana.com".to_string());
+    // Get RPC URL from environment variable
+    let rpc_url = std::env::var("SOLANA_RPC_URL")
+        .unwrap_or_else(|_| "https://api.mainnet-beta.solana.com".to_string());
+    
+    let client = RpcClient::new(rpc_url);
 
     let pubkey = Pubkey::from_str(&address).unwrap_or(Pubkey::default());
 
@@ -62,12 +65,20 @@ async fn get_balance(Path(address): Path<String>) -> Json<BalanceResponse> {
 
 #[tokio::main]
 async fn main() {
+    // Load environment variables from .env file
+    dotenv::dotenv().ok();
+    
+    let port = std::env::var("PORT")
+        .unwrap_or_else(|_| "3000".to_string())
+        .parse::<u16>()
+        .unwrap_or(3000);
+
     let app = Router::new()
         .route("/", get(hello))
         .route("/submit", post(receive_message))
         .route("/balance/{address}", get(get_balance));
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
+    let addr = SocketAddr::from(([0, 0, 0, 0], port));
     println!("Server running at http://{}", addr);
 
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
