@@ -7,7 +7,7 @@ use axum::{
 };
 use dotenv::dotenv;
 use openapi::ApiDoc;
-use routes::{get_balance, hello, receive_message, generate_keypair, create_token, mint_token, sign_message, verify_message, send_sol, send_token};
+use routes::{get_balance, receive_message, generate_keypair, create_token, mint_token, sign_message, verify_message, send_sol, send_token};
 use std::net::SocketAddr;
 use tracing_subscriber;
 use utoipa::OpenApi;
@@ -27,7 +27,6 @@ async fn main() {
     tracing::info!("🚀 Server running at http://{}", addr);
 
     let app = Router::new()
-        .route("/", get(hello))
         .route("/submit", post(receive_message))
         .route("/balance/{address}", get(get_balance))
         .route("/keypair", post(generate_keypair))
@@ -37,7 +36,7 @@ async fn main() {
         .route("/message/verify", post(verify_message))
         .route("/send/sol", post(send_sol))
         .route("/send/token", post(send_token))
-        .merge(SwaggerUi::new("/docs").url("/api-docs/openapi.json", ApiDoc::openapi()));
+        .merge(SwaggerUi::new("/").url("/api-docs/openapi.json", ApiDoc::openapi()));
 
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();

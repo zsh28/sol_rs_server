@@ -108,11 +108,6 @@ fn keypair_from_base58_secret(secret: &str) -> Result<Keypair, String> {
         .map_err(|_| "Invalid keypair: must be 64 bytes".to_string())
 }
 
-#[utoipa::path(get, path = "/")]
-pub async fn hello() -> &'static str {
-    "Hello from Rust!"
-}
-
 #[utoipa::path(post, path = "/submit")]
 pub async fn receive_message(Json(payload): Json<Message>) -> Json<Response> {
     Json(Response {

@@ -4,7 +4,6 @@ use utoipa::OpenApi;
 #[derive(OpenApi)]
 #[openapi(
     paths(
-        crate::routes::hello,
         crate::routes::receive_message,
         crate::routes::get_balance,
         crate::routes::generate_keypair,
