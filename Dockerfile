@@ -24,5 +24,5 @@ USER appuser
 # Copy the statically linked binary
 COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/sol_rs_server /usr/local/bin/app
 
-EXPOSE 3000
+EXPOSE 4000
 CMD ["app"]
