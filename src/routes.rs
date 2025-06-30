@@ -316,7 +316,7 @@ pub async fn send_token(Json(req): Json<SendTokenRequest>) -> axum::response::Re
         }.into_response(),
     };
 
-    let mint = match Pubkey::from_str(&req.mint) {
+    let _mint = match Pubkey::from_str(&req.mint) {
         Ok(p) => p,
         Err(_) => return ApiResponse::<()>::Error {
             success: false,
