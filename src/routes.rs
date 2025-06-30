@@ -10,11 +10,11 @@ use solana_client::rpc_client::RpcClient;
 use solana_sdk::{
     pubkey::Pubkey,
     signature::{Keypair, Signature, Signer},
+    system_instruction,
 };
 use spl_token::instruction::{initialize_mint, mint_to, transfer as token_transfer};
 use std::str::FromStr;
 use utoipa::ToSchema;
-use solana_sdk::system_instruction;
 
 #[derive(Debug, Serialize)]
 #[serde(untagged)]
@@ -97,6 +97,15 @@ pub struct SendTokenRequest {
     mint: String,
     owner: String,
     amount: u64,
+}
+
+fn keypair_from_base58_secret(secret: &str) -> Result<Keypair, String> {
+    let bytes = bs58::decode(secret)
+        .into_vec()
+        .map_err(|_| "Invalid base58 encoding".to_string())?;
+
+    Keypair::from_bytes(&bytes)
+        .map_err(|_| "Invalid keypair: must be 64 bytes".to_string())
 }
 
 #[utoipa::path(get, path = "/")]
@@ -202,11 +211,37 @@ pub async fn create_token(Json(req): Json<TokenCreateRequest>) -> axum::response
 
 #[utoipa::path(post, path = "/token/mint")]
 pub async fn mint_token(Json(req): Json<TokenMintRequest>) -> axum::response::Response {
-    let mint = Pubkey::from_str(&req.mint).unwrap();
-    let destination = Pubkey::from_str(&req.destination).unwrap();
-    let authority = Pubkey::from_str(&req.authority).unwrap();
+    let mint = match Pubkey::from_str(&req.mint) {
+        Ok(pk) => pk,
+        Err(_) => return ApiResponse::<()>::Error {
+            success: false,
+            error: "Invalid mint address".to_string(),
+        }.into_response(),
+    };
 
-    let ix = mint_to(&spl_token::id(), &mint, &destination, &authority, &[], req.amount).unwrap();
+    let destination = match Pubkey::from_str(&req.destination) {
+        Ok(pk) => pk,
+        Err(_) => return ApiResponse::<()>::Error {
+            success: false,
+            error: "Invalid destination address".to_string(),
+        }.into_response(),
+    };
+
+    let authority = match Pubkey::from_str(&req.authority) {
+        Ok(pk) => pk,
+        Err(_) => return ApiResponse::<()>::Error {
+            success: false,
+            error: "Invalid authority address".to_string(),
+        }.into_response(),
+    };
+
+    let ix = match mint_to(&spl_token::id(), &mint, &destination, &authority, &[], req.amount) {
+        Ok(instr) => instr,
+        Err(e) => return ApiResponse::<()>::Error {
+            success: false,
+            error: format!("Failed to create mint instruction: {}", e),
+        }.into_response(),
+    };
 
     ApiResponse::Success {
         success: true,
@@ -224,8 +259,14 @@ pub async fn mint_token(Json(req): Json<TokenMintRequest>) -> axum::response::Re
 
 #[utoipa::path(post, path = "/message/sign")]
 pub async fn sign_message(Json(req): Json<MessageSignRequest>) -> axum::response::Response {
-    let secret_bytes = bs58::decode(&req.secret).into_vec().unwrap();
-    let keypair = Keypair::from_bytes(&secret_bytes).unwrap();
+    let keypair = match keypair_from_base58_secret(&req.secret) {
+        Ok(kp) => kp,
+        Err(e) => return ApiResponse::<()>::Error {
+            success: false,
+            error: e,
+        }.into_response(),
+    };
+
     let signature = keypair.sign_message(req.message.as_bytes());
 
     ApiResponse::Success {
