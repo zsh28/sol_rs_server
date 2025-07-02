@@ -1,7 +1,7 @@
 # SOLANA FELLOWSHIP
 
 ## Overview
-This project is a Rust-based HTTP server designed for high performance and scalability. It provides a robust foundation for building web applications and APIs.
+This project is a Rust-based HTTP server optimized for performance and scalability. It serves as a reliable platform for developing web applications and APIs, leveraging Rust's efficiency and safety features. The server is designed to interact seamlessly with the Solana blockchain, enabling functionalities such as token creation, balance retrieval, and secure transactions.
 
 ## Features
 - **Fast and Efficient**: Built with Rust, ensuring high performance and low memory usage.
@@ -74,3 +74,23 @@ The server includes OpenAPI support for API documentation. You can access the do
 ### `/token/create`
 - **Method**: POST
 - **Description**: Creates a new token mint on the Solana blockchain. Requires mint address, mint authority, and decimals.
+
+### `/token/mint`
+- **Method**: POST
+- **Description**: Mints tokens to a specified destination address. Requires mint address, destination address, authority, and amount.
+
+### `/message/sign`
+- **Method**: POST
+- **Description**: Signs a message using a provided secret key.
+
+### `/message/verify`
+- **Method**: POST
+- **Description**: Verifies the validity of a signed message using the provided signature and public key.
+
+### `/send-sol`
+- **Method**: POST
+- **Description**: Transfers SOL from one address to another. Requires sender address, recipient address, and amount in lamports.
+
+### `/send-token`
+- **Method**: POST
+- **Description**: Transfers tokens from one address to another. Requires destination address, mint address, owner address, and amount.
