@@ -1,13 +1,17 @@
 mod openapi;
 mod routes;
+mod json_extractor;
 
 use axum::{
     routing::{get, post},
     Router,
+    http::StatusCode,
+    response::IntoResponse,
+    Json,
 };
 use dotenv::dotenv;
 use openapi::ApiDoc;
-use routes::{get_balance, receive_message, generate_keypair, create_token, mint_token, sign_message, verify_message, send_sol, send_token};
+use routes::{get_balance, receive_message, generate_keypair, create_token, mint_token, sign_message, verify_message, send_sol, send_token, Message};
 use std::net::SocketAddr;
 use tracing_subscriber;
 use utoipa::OpenApi;
@@ -27,16 +31,42 @@ async fn main() {
     tracing::info!("🚀 Server running at http://{}", addr);
 
     let app = Router::new()
-        .route("/submit", post(receive_message))
+        .route("/submit", post(|req| async {
+            match crate::json_extractor::extract_json_with_error_status::<Message>(req).await {
+                Ok(Json(payload)) => receive_message(payload).await.into_response(),
+                Err(err) => err.0.into_response(),
+            }
+        }))
         .route("/balance/{address}", get(get_balance))
         .route("/keypair", post(generate_keypair))
-        .route("/token/create", post(create_token))
-        .route("/token/mint", post(mint_token))
-        .route("/message/sign", post(sign_message))
-        .route("/message/verify", post(verify_message))
-        .route("/send/sol", post(send_sol))
-        .route("/send/token", post(send_token))
-        .merge(SwaggerUi::new("/").url("/api-docs/openapi.json", ApiDoc::openapi()));
+        .route("/token/create", post(|req| async {
+            let result = crate::json_extractor::extract_json_with_error_status(req).await;
+            create_token(result).await
+        }))
+        .route("/token/mint", post(|req| async {
+            let result = crate::json_extractor::extract_json_with_error_status(req).await;
+            mint_token(result).await
+        }))
+        .route("/message/sign", post(|req| async {
+            let result = crate::json_extractor::extract_json_with_error_status(req).await;
+            sign_message(result).await
+        }))
+        .route("/message/verify", post(|req| async {
+            let result = crate::json_extractor::extract_json_with_error_status(req).await;
+            verify_message(result).await
+        }))
+        .route("/send/sol", post(|req| async {
+            let result = crate::json_extractor::extract_json_with_error_status(req).await;
+            send_sol(result).await
+        }))
+        .route("/send/token", post(|req| async {
+            let result = crate::json_extractor::extract_json_with_error_status(req).await;
+            send_token(result).await
+        }))
+        .merge(SwaggerUi::new("/").url("/api-docs/openapi.json", ApiDoc::openapi()))
+        .fallback_service(get(|| async {
+            (StatusCode::NOT_FOUND, "Not Found")
+        }));
 
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
