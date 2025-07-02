@@ -185,9 +185,9 @@ pub async fn create_token(
     // Handle extraction errors
     let Json(req) = match req {
         Ok(json) => json,
-         Err((status, body)) => return (status, body).into_response(),
+        Err((status, body)) => return (status, body).into_response(),
     };
-    
+
     // Check for required fields
     if req.mint.is_empty() || req.mint_authority.is_empty() {
         return ApiResponse::<()>::Error {
@@ -255,7 +255,7 @@ pub async fn sign_message(
     // Handle extraction errors
     let Json(req) = match req {
         Ok(json) => json,
-         Err((status, body)) => return (status, body).into_response(),
+        Err((status, body)) => return (status, body).into_response(),
     };
     match keypair_from_base58_secret(&req.secret) {
         Ok(keypair) => {
@@ -285,7 +285,7 @@ pub async fn verify_message(
     // Handle extraction errors
     let Json(req) = match req {
         Ok(json) => json,
-         Err((status, body)) => return (status, body).into_response(),
+        Err((status, body)) => return (status, body).into_response(),
     };
     let pubkey = Pubkey::from_str(&req.pubkey);
     let signature = bs58::decode(&req.signature).into_vec();
@@ -333,7 +333,7 @@ pub async fn send_sol(
 
     // Parsing the pubkeys
     let from = Pubkey::from_str(&req.from).map_err(|_| "Invalid sender public key");
-    let to   = Pubkey::from_str(&req.to).map_err(|_| "Invalid recipient public key");
+    let to = Pubkey::from_str(&req.to).map_err(|_| "Invalid recipient public key");
 
     if let (Ok(from), Ok(to)) = (from, to) {
         //Create the System‑Program transfer instruction
@@ -341,8 +341,8 @@ pub async fn send_sol(
 
         // Build instruction data: discriminator (2) + lamports (little‑endian u64)
         let mut data = Vec::with_capacity(12);
-        data.extend_from_slice(&2u32.to_le_bytes());          // [2, 0, 0, 0]
-        data.extend_from_slice(&req.lamports.to_le_bytes());  // amount
+        data.extend_from_slice(&2u32.to_le_bytes()); // [2, 0, 0, 0]
+        data.extend_from_slice(&req.lamports.to_le_bytes()); // amount
         ix.data = data;
 
         //Return API response
@@ -365,7 +365,6 @@ pub async fn send_sol(
     .into_response()
 }
 
-
 #[utoipa::path(post, path = "/token/mint")]
 pub async fn mint_token(
     req: Result<Json<TokenMintRequest>, (StatusCode, axum::Json<serde_json::Value>)>,
@@ -373,9 +372,9 @@ pub async fn mint_token(
     // Handle extraction errors
     let Json(req) = match req {
         Ok(json) => json,
-         Err((status, body)) => return (status, body).into_response(),
+        Err((status, body)) => return (status, body).into_response(),
     };
-    
+
     // Check for required fields
     if req.mint.is_empty() || req.destination.is_empty() || req.authority.is_empty() {
         return ApiResponse::<()>::Error {
@@ -429,13 +428,17 @@ pub async fn mint_token(
 
     match mint_to(&spl_token::id(), &mint, &ata, &authority, &[], req.amount) {
         Ok(ix) => {
-            let accounts = ix.accounts.iter().map(|a| {
-                serde_json::json!({
-                    "pubkey": a.pubkey.to_string(),
-                    "is_signer": a.is_signer,
-                    "is_writable": a.is_writable,
+            let accounts = ix
+                .accounts
+                .iter()
+                .map(|a| {
+                    serde_json::json!({
+                        "pubkey": a.pubkey.to_string(),
+                        "is_signer": a.is_signer,
+                        "is_writable": a.is_writable,
+                    })
                 })
-            }).collect::<Vec<_>>();
+                .collect::<Vec<_>>();
 
             ApiResponse::Success {
                 success: true,
@@ -462,9 +465,9 @@ pub async fn send_token(
     // Handle extraction errors
     let Json(req) = match req {
         Ok(json) => json,
-         Err((status, body)) => return (status, body).into_response(),
+        Err((status, body)) => return (status, body).into_response(),
     };
-    
+
     // Check for required fields
     if req.destination.is_empty() || req.owner.is_empty() || req.mint.is_empty() {
         return ApiResponse::<()>::Error {
@@ -517,7 +520,14 @@ pub async fn send_token(
     let from_ata = get_associated_token_address(&owner, &mint);
     let to_ata = get_associated_token_address(&destination_wallet, &mint);
 
-    match token_transfer(&spl_token::id(), &from_ata, &to_ata, &owner, &[], req.amount) {
+    match token_transfer(
+        &spl_token::id(),
+        &from_ata,
+        &to_ata,
+        &owner,
+        &[],
+        req.amount,
+    ) {
         Ok(ix) => {
             // Create an array of accounts manually with the expected order for the test
             let accounts = vec![
@@ -544,7 +554,7 @@ pub async fn send_token(
                 }),
             }
             .into_response()
-        },
+        }
         Err(e) => ApiResponse::<()>::Error {
             success: false,
             error: format!("Failed to create transfer instruction: {}", e),
